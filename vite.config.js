@@ -2,7 +2,11 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue({ customElement: true })],
+  server: {
+    port: 5177,
+    strictPort: true
+  },
   build: {
     lib: {
       entry: 'src/widget.js',

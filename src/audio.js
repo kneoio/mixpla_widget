@@ -58,7 +58,7 @@ export function createAudioController() {
       const level = hls?.levels?.[hls?.currentLevel ?? 0]
       const streamUrl = getStreamUrl(slug)
       const url = level?.url?.[0] ?? streamUrl.replace('/master.m3u8', '/stream.m3u8')
-      const res = await fetch(url, { headers: { 'x-client-id': 'mixpla-web' } })
+      const res = await fetch(url)
       const text = await res.text()
       const song = parseM3U8(text)
       if (song && song.display && song.display !== state.song.display) {

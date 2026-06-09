@@ -1,24 +1,24 @@
 <template>
   <div class="mp-widget">
-    <audio ref="audioEl" />
-
-    <button class="mp-btn" :class="{ loading: audio.isLoading }" @click="ctrl.toggle(slug)">
-      <span v-if="audio.isLoading" class="mp-spinner" />
-      <span v-else-if="audio.isPlaying" class="mp-icon">&#9646;&#9646;</span>
-      <span v-else class="mp-icon">&#9654;</span>
+    <button class="mp-btn" :class="{ playing: audio.isPlaying, loading: audio.isLoading }" @click="ctrl.toggle(slug)">
+      <svg v-if="audio.isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
     </button>
 
+    <span class="mp-led" :class="ledClass"></span>
+
     <div class="mp-info">
-      <div class="mp-station">{{ label || slug }}</div>
-      <div class="mp-song">{{ audio.song.display || ' ' }}</div>
+      <div class="mp-name">{{ label || slug }}</div>
+      <div class="mp-song" v-if="audio.song.title">{{ audio.song.title }}<span v-if="audio.song.artist" class="mp-artist"> · {{ audio.song.artist }}</span></div>
+      <div class="mp-song muted" v-else>—</div>
     </div>
 
-    <div v-if="audio.hasError" class="mp-error">Stream unavailable</div>
+    <audio ref="audioEl" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { createAudioController } from './audio.js'
 
 const props = defineProps({
@@ -30,6 +30,13 @@ const audioEl = ref(null)
 const ctrl = createAudioController()
 const audio = ctrl.state
 
+const ledClass = computed(() => {
+  if (audio.hasError) return 'offline'
+  if (audio.isLoading) return 'idle'
+  if (audio.isPlaying) return 'online'
+  return 'off'
+})
+
 onMounted(() => ctrl.initAudio(audioEl.value))
 onUnmounted(() => ctrl.stop())
 </script>
@@ -39,48 +46,101 @@ onUnmounted(() => ctrl.stop())
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
-  background: #111;
-  border-radius: 12px;
-  font-family: sans-serif;
-  color: #fff;
-  min-width: 220px;
+  height: 56px;
+  padding: 0 1.25rem;
+  background: rgba(15, 15, 20, 0.95);
+  border-radius: 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-width: 260px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
 }
 
 .mp-btn {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   border-radius: 50%;
-  border: none;
-  background: #e63946;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.85);
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.mp-btn svg { width: 13px; height: 13px; margin-left: 2px; }
+
+.mp-btn:hover { background: rgba(0,0,0,1); border-color: rgba(255,255,255,0.8); }
+.mp-btn:active { opacity: 0.8; }
+
+.mp-btn.playing {
+  background: #ff4757;
+  border-color: #ff4757;
+  animation: pulse-play 1.5s ease-in-out infinite;
+}
+
+.mp-btn.loading {
+  background: rgba(0,0,0,0.5);
+  border-color: rgba(255,255,255,0.2);
+  animation: spin-border 0.8s linear infinite;
+  cursor: default;
+}
+
+.mp-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.mp-btn.loading { background: #555; cursor: default; }
+.mp-led.online  { background: #00e676; animation: blink 1.4s ease-in-out infinite; }
+.mp-led.idle    { background: #ffb300; animation: blink 0.7s ease-in-out infinite; }
+.mp-led.offline { background: #ff4757; opacity: 0.55; }
+.mp-led.off     { background: rgba(255,255,255,0.15); }
 
-.mp-icon { font-size: 16px; line-height: 1; }
-
-.mp-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+.mp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+.mp-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-.mp-info { overflow: hidden; }
+.mp-song {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-.mp-station { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-song.muted { color: rgba(255,255,255,0.2); }
 
-.mp-song { font-size: 11px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.mp-artist { color: rgba(255,255,255,0.35); }
 
-.mp-error { font-size: 11px; color: #e63946; }
+@keyframes pulse-play {
+  0%, 100% { box-shadow: 0 0 12px rgba(255,71,87,0.8), 0 0 24px rgba(255,71,87,0.5); }
+  50%       { box-shadow: 0 0 20px rgba(255,71,87,1),   0 0 40px rgba(255,71,87,0.7); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes spin-border {
+  to { transform: rotate(360deg); }
+}
 </style>

@@ -1,2 +1,6 @@
 node_modules/
 dist/
+/.idea/.gitignore
+/.idea/mixpla_widget.iml
+/.idea/modules.xml
+/.idea/vcs.xml
